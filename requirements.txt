@@ -1,0 +1,5 @@
+ipykernel
+streamlit
+crewai
+crewai_tools
+langchain-groq
