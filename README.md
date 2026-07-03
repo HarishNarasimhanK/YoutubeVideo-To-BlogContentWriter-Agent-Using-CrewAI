@@ -12,11 +12,11 @@ The pipeline divides the workflow between two specialized autonomous agents exec
 
 ```mermaid
 graph TD
-    A[Input Topic: AI VS ML VS DL VS Data Science] -->|Sequential Process| B[blog_researcher: Senior Content Researcher]
-    B -->|Tools: YoutubeChannelSearchTool| C[@krishnaik06 Channel Videos]
+    A["Input Topic: AI VS ML VS DL VS Data Science"] -->|Sequential Process| B["blog_researcher: Senior Content Researcher"]
+    B -->|Tools: YoutubeChannelSearchTool| C["@krishnaik06 Channel Videos"]
     C -->|Extract Context & Details| B
-    B -->|Output: 5-Paragraph Research Report| D[blog_writer: Senior Content Writer]
-    D -->|Synthesize & Write| E[Output File: new-blog-post.md]
+    B -->|Output: 5-Paragraph Research Report| D["blog_writer: Senior Content Writer"]
+    D -->|Synthesize & Write| E["Output File: new-blog-post.md"]
 ```
 
 ---
