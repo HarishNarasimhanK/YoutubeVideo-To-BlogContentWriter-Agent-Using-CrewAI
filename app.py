@@ -98,7 +98,7 @@ if provider != "Ollama":
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "**Pipeline v2 — LangGraph:**\n"
+    "**Pipeline — LangGraph:**\n"
     "1. Extract transcript (no LLM).\n"
     "2. **Guardrail** — rejects non-educational videos.\n"
     "3. Researcher fetches Wikipedia + arXiv citations.\n"
@@ -178,8 +178,8 @@ if st.session_state.get("rejected"):
 
 if st.session_state.generated:
     if os.path.exists("architecture_diagram.png"):
-        with st.expander("🗺️ Pipeline Architecture Diagram (v2)", expanded=False):
-            st.image("architecture_diagram.png", caption="LangGraph v2 Pipeline")
+        with st.expander("🗺️ Pipeline Architecture Diagram", expanded=False):
+            st.image("architecture_diagram.png", caption="LangGraph Pipeline")
 
     loops = st.session_state.iteration_count + 1
     if loops > 1:
