@@ -21,4 +21,6 @@ Requirements:
 2. Do NOT use mathematical formulas or LaTeX equations; explain concepts in plain English.
 3. Define key technical terms the first time they appear, and embed references inline as Markdown links.
 4. Ensure a smooth, seamless narrative transition from the previous section ending, with no section-wise intro, outro, headers, or references sections.
+5. Start writing the content directly. Do NOT output conversational prefaces (e.g., "Certainly!", "Here is how to draft...") or structural markdown block markers.
+6. Stick strictly to the facts in the provided transcript segments or research report. Do NOT fabricate historical details or definitions (e.g., CLI is NOT a GUI; Unix was developed at Bell Labs, not MIT).
 """
