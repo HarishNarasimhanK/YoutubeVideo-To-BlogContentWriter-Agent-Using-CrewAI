@@ -50,9 +50,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("🎥 DemystifyAI Agent")
+st.title("💡 DemystifyAI Agent")
 st.markdown(
-    "Converts any YouTube video into **Beginner** and **Technical** explanations "
+    "Converts any YouTube video, PDF document, or raw text into **Beginner** and **Technical** explanations "
     "with Wikipedia & arXiv citations — powered by **LangGraph** multi-agent intelligence."
 )
 
@@ -109,9 +109,11 @@ st.sidebar.info(
 )
 
 source_input = st.text_input(
-    "🔗 Enter YouTube Video URL or text",
-    placeholder="https://www.youtube.com/watch?v=... or raw text",
+    "🔗 Enter YouTube Video URL, Local PDF Path, or Raw Text",
+    placeholder="https://www.youtube.com/watch?v=..., documents/paper.pdf, or raw text...",
 )
+
+uploaded_pdf = st.file_uploader("📂 Or Upload a PDF Document", type=["pdf"])
 
 if "generated" not in st.session_state:
     st.session_state.generated = False
@@ -120,11 +122,11 @@ if "generated" not in st.session_state:
     st.session_state.rejection_msg = ""
     st.session_state.iteration_count = 0
 
-run_btn = st.button("🚀 Demystify Video", type="primary", use_container_width=True)
+run_btn = st.button("🚀 Demystify Input", type="primary", use_container_width=True)
 
 if run_btn:
-    if not source_input.strip():
-        st.error("Please enter a valid YouTube URL or raw text.")
+    if not source_input.strip() and not uploaded_pdf:
+        st.error("Please enter a valid input source or upload a PDF.")
     elif provider.lower() == "ollama" and not model:
         st.error("Please start local Ollama and pull a model first (e.g. `ollama pull qwen2.5:0.5b`).")
     else:
@@ -145,12 +147,27 @@ if run_btn:
                         except OSError:
                             pass
 
-                # Temporary hack in app.py to detect raw text vs URL
-                is_url = "youtube.com" in source_input or "youtu.be" in source_input
-                source_type = "youtube" if is_url else "raw_text"
+                # Detect source type
+                if uploaded_pdf is not None:
+                    # Save the uploaded file locally
+                    temp_pdf_path = os.path.join(os.getcwd(), "temp_uploaded.pdf")
+                    with open(temp_pdf_path, "wb") as f:
+                        f.write(uploaded_pdf.getbuffer())
+                    source_input_to_use = temp_pdf_path
+                    source_type = "pdf"
+                else:
+                    source_input_to_use = source_input.strip()
+                    is_url = "youtube.com" in source_input_to_use or "youtu.be" in source_input_to_use
+                    is_pdf = source_input_to_use.lower().endswith(".pdf")
+                    if is_pdf:
+                        source_type = "pdf"
+                    elif is_url:
+                        source_type = "youtube"
+                    else:
+                        source_type = "raw_text"
 
                 result = run_pipeline(
-                    source_input=source_input,
+                    source_input=source_input_to_use,
                     source_type=source_type,
                     provider=provider.lower(),
                     model=model,

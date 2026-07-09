@@ -3,10 +3,12 @@ from __future__ import annotations
 from core.extractors.base import BaseTextExtractor, ExtractedContent
 from core.extractors.youtube import YouTubeExtractor
 from core.extractors.raw_text import RawTextExtractor
+from core.extractors.pdf import PDFExtractor
 
 EXTRACTOR_REGISTRY = {
     "youtube": YouTubeExtractor,
     "raw_text": RawTextExtractor,
+    "pdf": PDFExtractor,
 }
 
 
