@@ -13,6 +13,7 @@ class PipelineState(TypedDict):
     rejection_message: Optional[str]
 
     transcript: str
+    global_context: str
     chunks: List[Dict[str, Any]]
 
     mapped_concepts_report: str

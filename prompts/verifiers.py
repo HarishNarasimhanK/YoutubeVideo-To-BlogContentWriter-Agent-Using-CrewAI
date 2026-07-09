@@ -5,7 +5,7 @@ Review the draft to verify:
 3. Realistic domain-specific examples used (no generic analogies).
 4. Cohesive narrative flow without section conclusions or "Chapter" headers.
 5. No conversational prefaces (e.g., "Certainly! Here is how to draft...").
-6. Absolute factual accuracy and grounding. The draft must contain ONLY facts directly supported by the technical source material or research report. Reject any drafts containing ungrounded claims, generic textbook filler, or conversational prefaces. If any incorrect or ungrounded statements are found, verdict must be NOT_SATISFIED.
+6. The draft must contain ONLY facts directly supported by the transcript or research report. Reject any drafts containing ungrounded claims, generic textbook filler, or topics not present in the transcript.
 Output:
 VERDICT: SATISFIED
 or

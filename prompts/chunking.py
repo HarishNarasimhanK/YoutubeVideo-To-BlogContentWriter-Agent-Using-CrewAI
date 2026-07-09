@@ -1,5 +1,17 @@
+CONTEXT_SUMMARIZER_SYSTEM = """\
+Summarize the following video transcript in exactly 10 lines. Cover: the main subject, key topics discussed in order, and the speaker's core message. Be factual and concise. Do NOT add opinions or external knowledge.
+"""
+
+GROUNDING_PREAMBLE = """\
+--- VIDEO CONTEXT (source of truth) ---
+{global_context}
+---
+The transcript is the ONLY source of truth. Explain ONLY what is covered in the transcript from first principles. Do NOT introduce topics, facts, or definitions not present in the transcript.
+"""
+
 MAP_EXTRACTOR_SYSTEM = """\
 Analyze the transcript segment and extract a concise narrative summary of the topics discussed, along with a list of key concepts and terms introduced. Do NOT include mathematical formulas or equations; explain them conceptually.
+The transcript is the ONLY source of truth. Do NOT introduce topics or facts not present in the transcript.
 """
 
 SHUFFLER_SYSTEM = """\
@@ -7,6 +19,7 @@ Connect the given segment summaries and concept extractions to produce a single,
 Provide:
 1. Core Narrative Arc: A summary of the logical journey.
 2. Concept Flow: A chronological list of topics and concepts.
+The transcript is the ONLY source of truth. Do NOT introduce topics or facts not present in the transcript.
 """
 
 OUTLINE_PLANNER_SYSTEM = """\
@@ -22,5 +35,5 @@ Requirements:
 3. Define key technical terms the first time they appear, and embed references inline as Markdown links.
 4. Ensure a smooth, seamless narrative transition from the previous section ending, with no section-wise intro, outro, headers, or references sections.
 5. Start writing the content directly. Do NOT output conversational prefaces (e.g., "Certainly!", "Here is how to draft...") or structural markdown block markers.
-6. Stick strictly to the facts in the provided transcript segments or research report. Do NOT fabricate details, definitions, or history. Keep the explanation fully grounded.
+6. The transcript is the ONLY source of truth. Stick strictly to the facts in the provided transcript segments or research report. Do NOT fabricate or introduce topics, facts, definitions, or history not present in the transcript.
 """

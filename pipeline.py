@@ -35,6 +35,7 @@ def run_pipeline(
         "is_informative":           None,
         "rejection_message":        None,
         "transcript":               "",
+        "global_context":           "",
         "chunks":                   [],
         "mapped_concepts_report":   "",
         "structured_response_map":  "",

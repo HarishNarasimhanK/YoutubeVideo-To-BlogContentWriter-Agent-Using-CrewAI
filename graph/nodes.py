@@ -17,6 +17,8 @@ from core.llm import get_llm
 from prompts import (
     BEGINNER_VERIFIER_SYSTEM,
     BEGINNER_WRITER_SYSTEM,
+    CONTEXT_SUMMARIZER_SYSTEM,
+    GROUNDING_PREAMBLE,
     GUARDRAIL_REJECTION_TEMPLATE,
     GUARDRAIL_SYSTEM,
     RESEARCHER_SYSTEM,
@@ -273,12 +275,26 @@ def extract_transcript_node(state: PipelineState) -> dict:
             "end_time": items[-1].start + last_duration
         })
 
-    elapsed = time.time() - t0
     print(f"[extract_transcript_node] Transcript: {len(transcript):,} chars, divided into {len(chunks)} chunks.")
+
+    print(f"[extract_transcript_node] Generating global context summary …")
+    llm = get_llm(state["provider"], state["model"], state["api_key"])
+    handler = VerboseCallbackHandler("context_summarizer")
+    context_excerpt = transcript[:6000]
+    context_messages = [
+        SystemMessage(content=CONTEXT_SUMMARIZER_SYSTEM),
+        HumanMessage(content=f"Transcript:\n{context_excerpt}"),
+    ]
+    context_response = _invoke_with_retry(llm, context_messages, config={"callbacks": [handler]})
+    global_context = context_response.content.strip()
+    print(f"[extract_transcript_node] Global context ({len(global_context)} chars) generated.")
+
+    elapsed = time.time() - t0
     _banner("extract_transcript_node", "COMPLETE", elapsed)
 
     return {
         "transcript": transcript,
+        "global_context": global_context,
         "chunks": chunks,
         "node_logs": [f"[extract_transcript_node] {len(transcript):,} chars in {elapsed:.1f}s"],
     }
@@ -333,11 +349,14 @@ def map_concepts_node(state: PipelineState) -> dict:
     handler = VerboseCallbackHandler("map_concepts_node")
 
     chunks = state["chunks"]
+    global_context = state.get("global_context", "")
+    grounding = GROUNDING_PREAMBLE.format(global_context=global_context) if global_context else ""
     print(f"[map_concepts_node] Mapping over {len(chunks)} transcript chunks …")
 
     def process_chunk(idx, chunk):
+        system_prompt = grounding + "\n" + MAP_EXTRACTOR_SYSTEM if grounding else MAP_EXTRACTOR_SYSTEM
         messages = [
-            SystemMessage(content=MAP_EXTRACTOR_SYSTEM),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=(
                 f"Segment Index: {idx + 1}\n"
                 f"Timestamps: {chunk['start_time']:.1f}s - {chunk['end_time']:.1f}s\n\n"
@@ -469,7 +488,11 @@ def research_node(state: PipelineState) -> dict:
         for c in retrieved
     )
 
+    global_context = state.get("global_context", "")
+    grounding = GROUNDING_PREAMBLE.format(global_context=global_context) if global_context else ""
+
     system_prompt = RESEARCHER_WITH_FEEDBACK_SYSTEM if is_retry else RESEARCHER_SYSTEM
+    system_prompt = grounding + "\n" + system_prompt if grounding else system_prompt
     if not use_native_tools:
         system_prompt += """
 
@@ -607,6 +630,9 @@ def write_draft_node(state: PipelineState) -> dict:
     handler = VerboseCallbackHandler(f"write_draft_node[iter={iteration + 1}]")
     store = TranscriptRAGStore(state["chunks"], state["provider"], state["api_key"])
 
+    global_context = state.get("global_context", "")
+    grounding = GROUNDING_PREAMBLE.format(global_context=global_context) if global_context else ""
+
     outline = state.get("outline") or []
     if not outline:
         messages = [
@@ -633,7 +659,7 @@ def write_draft_node(state: PipelineState) -> dict:
                 for c in retrieved
             )
 
-            system_prompt = INCREMENTAL_WRITER_SYSTEM.format(
+            base_prompt = INCREMENTAL_WRITER_SYSTEM.format(
                 structured_response_map=state.get("structured_response_map", "N/A"),
                 chapter_title=title,
                 approx_timestamps=approx_ts,
@@ -642,6 +668,7 @@ def write_draft_node(state: PipelineState) -> dict:
                 retrieved_context=retrieved_context,
                 research_report=state["research_report"]
             )
+            system_prompt = grounding + "\n" + base_prompt if grounding else base_prompt
 
             messages = [
                 SystemMessage(content=system_prompt),
@@ -710,8 +737,12 @@ def verify_draft_node(state: PipelineState) -> dict:
     llm = get_llm(state["provider"], state["model"], state["api_key"])
     handler = VerboseCallbackHandler(f"verify_draft_node[iter={iteration + 1}]")
 
+    global_context = state.get("global_context", "")
+    grounding = GROUNDING_PREAMBLE.format(global_context=global_context) if global_context else ""
+    verifier_prompt = grounding + "\n" + BEGINNER_VERIFIER_SYSTEM if grounding else BEGINNER_VERIFIER_SYSTEM
+
     messages = [
-        SystemMessage(content=BEGINNER_VERIFIER_SYSTEM),
+        SystemMessage(content=verifier_prompt),
         HumanMessage(content="Review draft:\n\n" + state["draft"]),
     ]
 
