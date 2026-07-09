@@ -21,7 +21,7 @@ def run_pipeline(
     api_key: Optional[str] = None,
     export_diagram: bool = True,
 ) -> dict:
-    """Run the full YouTube Demystifier LangGraph pipeline."""
+    """Run the full DemystifyAI LangGraph pipeline."""
     graph = _get_graph()
 
     if export_diagram:

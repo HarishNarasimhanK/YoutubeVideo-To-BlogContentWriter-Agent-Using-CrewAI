@@ -1,4 +1,4 @@
-# 🎥 YouTube Video Demystifier Agent (LangGraph v2)
+# 🎥 DemystifyAI (LangGraph v2)
 
 An autonomous multi-agent engineering pipeline designed to convert educational YouTube videos into comprehensive, first-principles explanations.
 

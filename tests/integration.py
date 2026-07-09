@@ -16,7 +16,7 @@ def _hr(char: str = "═", width: int = 72) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="CLI test for the YouTube Video Demystifier LangGraph pipeline."
+        description="CLI test for the DemystifyAI LangGraph pipeline."
     )
     parser.add_argument("--url", required=True, help="Full YouTube video URL")
     parser.add_argument("--provider", default="groq", choices=["groq", "gemini", "openai", "ollama"])
@@ -33,8 +33,8 @@ def main() -> None:
 
     print(_hr())
     md_append(_hr())
-    print("  🎥  YouTube Video Demystifier")
-    md_append("  🎥  YouTube Video Demystifier")
+    print("  🎥  DemystifyAI")
+    md_append("  🎥  DemystifyAI")
     print(_hr())
     md_append(_hr())
     print(f"  URL      : {args.url}")

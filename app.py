@@ -15,7 +15,7 @@ def get_ollama_models() -> list[str]:
         return []
 
 st.set_page_config(
-    page_title="YouTube Video Demystifier — LangGraph",
+    page_title="DemystifyAI — LangGraph",
     page_icon="🎥",
     layout="wide",
 )
@@ -50,7 +50,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("🎥 YouTube Video Demystifier Agent")
+st.title("🎥 DemystifyAI Agent")
 st.markdown(
     "Converts any YouTube video into **Beginner** and **Technical** explanations "
     "with Wikipedia & arXiv citations — powered by **LangGraph** multi-agent intelligence."
