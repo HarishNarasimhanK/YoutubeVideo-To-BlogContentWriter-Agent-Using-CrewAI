@@ -10,7 +10,6 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.outputs import LLMResult
 from langchain_ollama import ChatOllama
-from youtube_transcript_api import YouTubeTranscriptApi
 
 from core.state import PipelineState
 from core.llm import get_llm
@@ -29,7 +28,8 @@ from prompts import (
     OUTLINE_PLANNER_SYSTEM,
     INCREMENTAL_WRITER_SYSTEM,
 )
-from tools.search import get_video_id, search_arxiv, search_wikipedia
+from core.extractors import get_extractor
+from tools.search import search_arxiv, search_wikipedia
 from tools.rag import TranscriptRAGStore
 
 MAX_LOOP_ITERATIONS = 3
@@ -219,84 +219,45 @@ def _parse_verifier_response(response_text: str, verifier_name: str = "verifier"
 
     return satisfied, gaps, ""
 
-def extract_transcript_node(state: PipelineState) -> dict:
-    """Fetch YouTube transcript and partition into token-based chunks."""
+def extract_text_node(state: PipelineState) -> dict:
+    """Extract text from the input source using the appropriate extractor."""
     t0 = time.time()
-    _banner("extract_transcript_node")
+    _banner("extract_text_node")
 
-    url = state["youtube_url"]
-    print(f"[extract_transcript_node] Parsing video ID from: {url}")
-    video_id = get_video_id(url)
-    print(f"[extract_transcript_node] Video ID: {video_id}")
+    source_type = state["source_type"]
+    source_input = state["source_input"]
+    print(f"[extract_text_node] Source type: {source_type}")
 
-    try:
-        client = YouTubeTranscriptApi()
-        items = client.fetch(video_id)
-        transcript = " ".join(item.text for item in items)
-    except Exception as exc:
-        raise ValueError(f"Failed to fetch transcript for video '{video_id}': {exc}") from exc
+    extractor = get_extractor(source_type)
+    content = extractor.extract(source_input)
 
-    if not transcript.strip():
-        raise ValueError("Extracted transcript is empty. The video may have no captions.")
+    transcript = content.text
+    chunks = content.chunks
+    source_label = content.source_label
 
-    max_tokens_per_chunk = 5000
-    chunks = []
-    current_chunk_text = []
-    current_chunk_tokens = 0
-    current_chunk_start = None
+    print(f"[extract_text_node] {source_label}: {len(transcript):,} chars, {len(chunks)} chunks.")
 
-    for item in items:
-        start = item.start
-        text = item.text
-        words = text.split()
-        item_tokens = int(len(words) * 1.3) or 1
-
-        if current_chunk_start is None:
-            current_chunk_start = start
-
-        if current_chunk_tokens + item_tokens > max_tokens_per_chunk and current_chunk_text:
-            chunks.append({
-                "text": " ".join(current_chunk_text),
-                "start_time": current_chunk_start,
-                "end_time": start
-            })
-            current_chunk_text = [text]
-            current_chunk_tokens = item_tokens
-            current_chunk_start = start
-        else:
-            current_chunk_text.append(text)
-            current_chunk_tokens += item_tokens
-
-    if current_chunk_text:
-        last_duration = getattr(items[-1], 'duration', 0.0) or 0.0
-        chunks.append({
-            "text": " ".join(current_chunk_text),
-            "start_time": current_chunk_start,
-            "end_time": items[-1].start + last_duration
-        })
-
-    print(f"[extract_transcript_node] Transcript: {len(transcript):,} chars, divided into {len(chunks)} chunks.")
-
-    print(f"[extract_transcript_node] Generating global context summary …")
+    print(f"[extract_text_node] Generating global context summary …")
     llm = get_llm(state["provider"], state["model"], state["api_key"])
     handler = VerboseCallbackHandler("context_summarizer")
     context_excerpt = transcript[:6000]
     context_messages = [
         SystemMessage(content=CONTEXT_SUMMARIZER_SYSTEM),
-        HumanMessage(content=f"Transcript:\n{context_excerpt}"),
+        HumanMessage(content=f"Source text:\n{context_excerpt}"),
     ]
     context_response = _invoke_with_retry(llm, context_messages, config={"callbacks": [handler]})
     global_context = context_response.content.strip()
-    print(f"[extract_transcript_node] Global context ({len(global_context)} chars) generated.")
+    print(f"[extract_text_node] Global context ({len(global_context)} chars) generated.")
 
     elapsed = time.time() - t0
-    _banner("extract_transcript_node", "COMPLETE", elapsed)
+    _banner("extract_text_node", "COMPLETE", elapsed)
 
     return {
         "transcript": transcript,
         "global_context": global_context,
+        "source_label": source_label,
         "chunks": chunks,
-        "node_logs": [f"[extract_transcript_node] {len(transcript):,} chars in {elapsed:.1f}s"],
+        "node_logs": [f"[extract_text_node] {source_label} | {len(transcript):,} chars in {elapsed:.1f}s"],
     }
 
 def guardrail_node(state: PipelineState) -> dict:

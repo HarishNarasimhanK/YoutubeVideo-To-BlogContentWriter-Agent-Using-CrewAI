@@ -108,9 +108,9 @@ st.sidebar.info(
     "7. Files saved & displayed here."
 )
 
-youtube_url = st.text_input(
-    "🔗 Enter YouTube Video URL",
-    placeholder="https://www.youtube.com/watch?v=...",
+source_input = st.text_input(
+    "🔗 Enter YouTube Video URL or text",
+    placeholder="https://www.youtube.com/watch?v=... or raw text",
 )
 
 if "generated" not in st.session_state:
@@ -123,8 +123,8 @@ if "generated" not in st.session_state:
 run_btn = st.button("🚀 Demystify Video", type="primary", use_container_width=True)
 
 if run_btn:
-    if not youtube_url.strip():
-        st.error("Please enter a valid YouTube URL.")
+    if not source_input.strip():
+        st.error("Please enter a valid YouTube URL or raw text.")
     elif provider.lower() == "ollama" and not model:
         st.error("Please start local Ollama and pull a model first (e.g. `ollama pull qwen2.5:0.5b`).")
     else:
@@ -145,8 +145,13 @@ if run_btn:
                         except OSError:
                             pass
 
+                # Temporary hack in app.py to detect raw text vs URL
+                is_url = "youtube.com" in source_input or "youtu.be" in source_input
+                source_type = "youtube" if is_url else "raw_text"
+
                 result = run_pipeline(
-                    youtube_url=youtube_url,
+                    source_input=source_input,
+                    source_type=source_type,
                     provider=provider.lower(),
                     model=model,
                     api_key=api_key_to_use,

@@ -4,7 +4,9 @@ import operator
 from typing import Annotated, Any, Dict, List, Optional, TypedDict
 
 class PipelineState(TypedDict):
-    youtube_url: str
+    source_input: str
+    source_type: str
+    source_label: str
     provider: str
     model: str
     api_key: Optional[str]

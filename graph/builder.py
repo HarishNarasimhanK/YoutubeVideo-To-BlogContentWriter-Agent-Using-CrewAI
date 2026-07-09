@@ -5,7 +5,7 @@ from langgraph.graph import END, START, StateGraph
 from core.state import PipelineState
 from graph.nodes import (
     check_quality_node,
-    extract_transcript_node,
+    extract_text_node,
     guardrail_node,
     map_concepts_node,
     shuffle_concepts_node,
@@ -30,7 +30,7 @@ def build_graph() -> StateGraph:
     """Build and compile the execution graph."""
     builder = StateGraph(PipelineState)
 
-    builder.add_node("extract_transcript", extract_transcript_node)
+    builder.add_node("extract_text",      extract_text_node)
     builder.add_node("guardrail",          guardrail_node)
     builder.add_node("map_concepts",       map_concepts_node)
     builder.add_node("shuffle_concepts",   shuffle_concepts_node)
@@ -41,8 +41,8 @@ def build_graph() -> StateGraph:
     builder.add_node("check_quality",      check_quality_node)
     builder.add_node("save_outputs",       save_outputs_node)
 
-    builder.add_edge(START,                "extract_transcript")
-    builder.add_edge("extract_transcript", "guardrail")
+    builder.add_edge(START,                "extract_text")
+    builder.add_edge("extract_text",       "guardrail")
 
     builder.add_conditional_edges(
         "guardrail",

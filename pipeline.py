@@ -15,7 +15,8 @@ def _get_graph():
     return _graph
 
 def run_pipeline(
-    youtube_url: str,
+    source_input: str,
+    source_type: str,
     provider: str,
     model: str,
     api_key: Optional[str] = None,
@@ -28,7 +29,9 @@ def run_pipeline(
         export_architecture_diagram(graph)
 
     initial_state: PipelineState = {
-        "youtube_url":              youtube_url,
+        "source_input":             source_input,
+        "source_type":              source_type,
+        "source_label":             "",
         "provider":                 provider,
         "model":                    model,
         "api_key":                  api_key,
