@@ -130,51 +130,111 @@ if run_btn:
     elif provider.lower() == "ollama" and not model:
         st.error("Please start local Ollama and pull a model first (e.g. `ollama pull qwen2.5:0.5b`).")
     else:
-        with st.spinner("⏳ Running LangGraph pipeline …"):
-            try:
-                api_key_to_use = custom_api_key.strip() or None
+        # Define pipeline stages
+        pipeline_stages = [
+            ("extract_text", "📥 Extracting text & chunking"),
+            ("guardrail", "🛡️ Running guardrail checks"),
+            ("map_concepts", "🗺️ Mapping concepts"),
+            ("shuffle_concepts", "🔀 Connecting concept narrative"),
+            ("plan_outline", "📋 Planning explanation outline"),
+            ("research", "🔬 Researching Wikipedia & ArXiv"),
+            ("write_draft", "✍️ Writing draft sections"),
+            ("verify_draft", "🔍 Verifying draft guidelines"),
+            ("check_quality", "🚦 Quality routing"),
+            ("save_outputs", "💾 Saving demystified document"),
+        ]
 
-                for key in ["generated", "rejected"]:
-                    st.session_state[key] = False
-                for key in ["explanation_text", "rejection_msg"]:
-                    st.session_state[key] = ""
-                st.session_state.iteration_count = 0
+        # Initialize slots
+        timeline_container = st.container()
+        placeholders = {}
+        with timeline_container:
+            st.markdown("### 🗺️ Pipeline Progress Timeline")
+            for node_name, label in pipeline_stages:
+                placeholders[node_name] = st.empty()
+                placeholders[node_name].markdown(f"⚪ **{label}**")
 
-                for fname in ["demystified_explanation.md"]:
-                    if os.path.exists(fname):
-                        try:
-                            os.remove(fname)
-                        except OSError:
-                            pass
+        try:
+            api_key_to_use = custom_api_key.strip() or None
 
-                # Detect source type
-                if uploaded_pdf is not None:
-                    # Save the uploaded file locally
-                    temp_pdf_path = os.path.join(os.getcwd(), "temp_uploaded.pdf")
-                    with open(temp_pdf_path, "wb") as f:
-                        f.write(uploaded_pdf.getbuffer())
-                    source_input_to_use = temp_pdf_path
+            for key in ["generated", "rejected"]:
+                st.session_state[key] = False
+            for key in ["explanation_text", "rejection_msg"]:
+                st.session_state[key] = ""
+            st.session_state.iteration_count = 0
+
+            for fname in ["demystified_explanation.md"]:
+                if os.path.exists(fname):
+                    try:
+                        os.remove(fname)
+                    except OSError:
+                        pass
+
+            # Detect source type
+            if uploaded_pdf is not None:
+                # Save the uploaded file locally
+                temp_pdf_path = os.path.join(os.getcwd(), "temp_uploaded.pdf")
+                with open(temp_pdf_path, "wb") as f:
+                    f.write(uploaded_pdf.getbuffer())
+                source_input_to_use = temp_pdf_path
+                source_type = "pdf"
+            else:
+                source_input_to_use = source_input.strip()
+                is_url = "youtube.com" in source_input_to_use or "youtu.be" in source_input_to_use
+                is_pdf = source_input_to_use.lower().endswith(".pdf")
+                if is_pdf:
                     source_type = "pdf"
+                elif is_url:
+                    source_type = "youtube"
                 else:
-                    source_input_to_use = source_input.strip()
-                    is_url = "youtube.com" in source_input_to_use or "youtu.be" in source_input_to_use
-                    is_pdf = source_input_to_use.lower().endswith(".pdf")
-                    if is_pdf:
-                        source_type = "pdf"
-                    elif is_url:
-                        source_type = "youtube"
-                    else:
-                        source_type = "raw_text"
+                    source_type = "raw_text"
 
-                result = run_pipeline(
-                    source_input=source_input_to_use,
-                    source_type=source_type,
-                    provider=provider.lower(),
-                    model=model,
-                    api_key=api_key_to_use,
-                    export_diagram=True,
-                )
+            # Set first node to running
+            placeholders[pipeline_stages[0][0]].markdown(f"⏳ **{pipeline_stages[0][1]}**")
 
+            result = None
+            stream = run_pipeline(
+                source_input=source_input_to_use,
+                source_type=source_type,
+                provider=provider.lower(),
+                model=model,
+                api_key=api_key_to_use,
+                export_diagram=True,
+            )
+
+            for update in stream:
+                if update["status"] == "completed":
+                    completed_node = update["node"]
+                    state = update["state"]
+
+                    # Mark current node as completed
+                    for idx, (n_name, label) in enumerate(pipeline_stages):
+                        if n_name == completed_node:
+                            # Special check for guardrail rejection
+                            if completed_node == "guardrail" and not state.get("is_informative", True):
+                                placeholders[completed_node].markdown(f"🚫 **{label} (Rejected)**")
+                            else:
+                                placeholders[completed_node].markdown(f"✅ **{label}**")
+
+                            # Set next node to running
+                            if idx + 1 < len(pipeline_stages):
+                                next_node_name, next_label = pipeline_stages[idx + 1]
+                                
+                                # Handle loopback
+                                if completed_node == "check_quality" and state.get("next_action") == "research":
+                                    # Reset downstream status to Not Started
+                                    for reset_idx in range(5, len(pipeline_stages)): # research index is 5
+                                        r_name, r_label = pipeline_stages[reset_idx]
+                                        placeholders[r_name].markdown(f"⚪ **{r_label}**")
+                                    # Set research to running with iteration count
+                                    iters = state.get("iteration_count", 0) + 1
+                                    placeholders["research"].markdown(f"⏳ **{pipeline_stages[5][1]} (Iteration {iters})**")
+                                else:
+                                    placeholders[next_node_name].markdown(f"⏳ **{next_label}**")
+                            break
+                elif update["status"] == "result":
+                    result = update["data"]
+
+            if result is not None:
                 if not result.get("is_informative", True):
                     st.session_state.rejected = True
                     st.session_state.rejection_msg = result.get("rejection_message", "")
@@ -188,8 +248,8 @@ if run_btn:
                         f"({loops} research loop{'s' if loops > 1 else ''} completed)"
                     )
 
-            except Exception as exc:
-                st.error(f"❌ Error: {exc}")
+        except Exception as exc:
+            st.error(f"❌ Error: {exc}")
 
 if st.session_state.get("rejected"):
     st.warning("🚫 This video was flagged by the content guardrail.")

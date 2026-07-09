@@ -55,15 +55,26 @@ def run_pipeline(
         "node_logs":                [],
     }
 
-    final_state = graph.invoke(initial_state)
+    last_state = dict(initial_state)
+    for event in graph.stream(initial_state, stream_mode="updates"):
+        for node_name, state_update in event.items():
+            for k, v in state_update.items():
+                if k == "node_logs" and isinstance(v, list):
+                    last_state["node_logs"] = last_state.get("node_logs", []) + v
+                else:
+                    last_state[k] = v
+            yield {"status": "completed", "node": node_name, "state": last_state}
 
-    return {
-        "is_informative":    final_state.get("is_informative", True),
-        "rejection_message": final_state.get("rejection_message"),
-        "explanation_file":  "demystified_explanation.md",
-        "explanation_text":  final_state.get("final", ""),
-        "node_logs":         final_state.get("node_logs",        []),
-        "iteration_count":   final_state.get("iteration_count",  0),
+    yield {
+        "status": "result",
+        "data": {
+            "is_informative":    last_state.get("is_informative", True),
+            "rejection_message": last_state.get("rejection_message"),
+            "explanation_file":  "demystified_explanation.md",
+            "explanation_text":  last_state.get("final", ""),
+            "node_logs":         last_state.get("node_logs",        []),
+            "iteration_count":   last_state.get("iteration_count",  0),
+        }
     }
 
 def translate_text(
