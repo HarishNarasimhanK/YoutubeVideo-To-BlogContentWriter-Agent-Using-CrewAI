@@ -1,28 +1,10 @@
 from __future__ import annotations
 
 import re
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
 from youtube_transcript_api import YouTubeTranscriptApi
-
-
-@dataclass
-class ExtractedContent:
-    """Standardized output from any text extractor."""
-    text: str
-    chunks: List[Dict[str, Any]]
-    source_label: str
-
-
-class BaseTextExtractor(ABC):
-    """Abstract base for all input source extractors."""
-
-    @abstractmethod
-    def extract(self, source: str) -> ExtractedContent:
-        """Extract text from the given source identifier (URL, file path, raw text, etc.)."""
-        ...
+from core.extractors.base import BaseTextExtractor, ExtractedContent
 
 
 class YouTubeExtractor(BaseTextExtractor):
@@ -97,57 +79,3 @@ class YouTubeExtractor(BaseTextExtractor):
             })
 
         return chunks
-
-
-class RawTextExtractor(BaseTextExtractor):
-    """Chunk raw text input by token count with sequential dummy timestamps."""
-
-    MAX_TOKENS_PER_CHUNK = 5000
-
-    def extract(self, source: str) -> ExtractedContent:
-        if not source.strip():
-            raise ValueError("Input text is empty.")
-
-        chunks = self._chunk_raw_text(source)
-
-        return ExtractedContent(
-            text=source,
-            chunks=chunks,
-            source_label="Raw Text",
-        )
-
-    def _chunk_raw_text(self, text: str) -> List[Dict[str, Any]]:
-        words = text.split()
-        chunks: List[Dict[str, Any]] = []
-        idx = 0
-        chunk_id = 0
-
-        while idx < len(words):
-            end = min(idx + self.MAX_TOKENS_PER_CHUNK, len(words))
-            chunk_text = " ".join(words[idx:end])
-            chunks.append({
-                "text": chunk_text,
-                "start_time": float(chunk_id),
-                "end_time": float(chunk_id + 1),
-            })
-            idx = end
-            chunk_id += 1
-
-        return chunks
-
-
-EXTRACTOR_REGISTRY = {
-    "youtube": YouTubeExtractor,
-    "raw_text": RawTextExtractor,
-}
-
-
-def get_extractor(source_type: str) -> BaseTextExtractor:
-    """Factory function to get the appropriate extractor for the given source type."""
-    cls = EXTRACTOR_REGISTRY.get(source_type.lower().strip())
-    if cls is None:
-        raise ValueError(
-            f"Unknown source type '{source_type}'. "
-            f"Supported: {', '.join(EXTRACTOR_REGISTRY.keys())}"
-        )
-    return cls()
