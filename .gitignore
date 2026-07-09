@@ -1,0 +1,13 @@
+# Python virtual environments & bytecode
+.venv/
+__pycache__/
+*.pyc
+
+# Local run output files
+test_output.md
+demystified_explanation.md
+architecture_diagram.png
+architecture_diagram.mmd
+
+# Environment files
+.env

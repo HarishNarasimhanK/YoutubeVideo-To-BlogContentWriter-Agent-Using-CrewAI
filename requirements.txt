@@ -1,5 +1,19 @@
-ipykernel
-streamlit
-crewai
-crewai_tools
+# ── LangGraph + LangChain core ────────────────────────────────────────────────
+langgraph
+langchain-core
+
+# ── LLM providers ─────────────────────────────────────────────────────────────
 langchain-groq
+langchain-google-genai
+langchain-openai
+langchain-community          # ChatOllama
+
+# ── Tools & data ──────────────────────────────────────────────────────────────
+youtube-transcript-api
+wikipedia
+
+# ── UI ────────────────────────────────────────────────────────────────────────
+streamlit
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv
