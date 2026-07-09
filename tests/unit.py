@@ -139,11 +139,11 @@ def run_ollama_diagnostics(model_name: str) -> str:
 def test_extract_transcript_node(state_base: PipelineState) -> dict:
     state = state_base.copy()
     try:
-        res = nodes.extract_transcript_node(state)
-        print("✅ extract_transcript_node completed successfully!")
+        res = nodes.extract_text_node(state)
+        print("✅ extract_text_node completed successfully!")
         return res
     except Exception as e:
-        print(f"❌ extract_transcript_node failed: {e}")
+        print("❌ extract_text_node failed:", e)
         raise
 
 def test_guardrail_node(state_base: PipelineState) -> dict:
@@ -273,13 +273,16 @@ def main() -> None:
         sys.exit(0)
 
     state_base: PipelineState = {
-        "youtube_url": args.url,
+        "source_input": args.url,
+        "source_type": "youtube",
+        "source_label": "YouTube Video",
         "provider": "ollama",
         "model": resolved_model,
         "api_key": None,
         "is_informative": None,
         "rejection_message": None,
         "transcript": "",
+        "global_context": "",
         "chunks": [],
         "mapped_concepts_report": "",
         "structured_response_map": "",

@@ -52,7 +52,8 @@ def main() -> None:
         from pipeline import run_pipeline
 
         result = run_pipeline(
-            youtube_url=args.url,
+            source_input=args.url,
+            source_type="youtube",
             provider=args.provider,
             model=args.model,
             api_key=args.api_key,
