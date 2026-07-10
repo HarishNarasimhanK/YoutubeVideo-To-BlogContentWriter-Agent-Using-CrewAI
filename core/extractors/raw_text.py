@@ -1,19 +1,16 @@
-from __future__ import annotations
-
 from typing import Any, Dict, List
+import tiktoken
 from core.extractors.base import BaseTextExtractor, ExtractedContent
 
 
 class RawTextExtractor(BaseTextExtractor):
-    """Chunk raw text input by token count with sequential dummy timestamps."""
+    """Chunk raw text input by exact token count with sequential dummy timestamps."""
 
-    MAX_TOKENS_PER_CHUNK = 5000
-
-    def extract(self, source: str) -> ExtractedContent:
+    def extract(self, source: str, max_tokens_per_chunk: int = 5000) -> ExtractedContent:
         if not source.strip():
             raise ValueError("Input text is empty.")
 
-        chunks = self._chunk_raw_text(source)
+        chunks = self._chunk_raw_text(source, max_tokens_per_chunk)
 
         return ExtractedContent(
             text=source,
@@ -21,21 +18,21 @@ class RawTextExtractor(BaseTextExtractor):
             source_label="Raw Text",
         )
 
-    def _chunk_raw_text(self, text: str) -> List[Dict[str, Any]]:
-        words = text.split()
+    def _chunk_raw_text(self, text: str, max_tokens: int) -> List[Dict[str, Any]]:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        token_ids = encoding.encode(text)
+
         chunks: List[Dict[str, Any]] = []
-        idx = 0
         chunk_id = 0
 
-        while idx < len(words):
-            end = min(idx + self.MAX_TOKENS_PER_CHUNK, len(words))
-            chunk_text = " ".join(words[idx:end])
+        for i in range(0, len(token_ids), max_tokens):
+            chunk_token_ids = token_ids[i : i + max_tokens]
+            chunk_text = encoding.decode(chunk_token_ids)
             chunks.append({
                 "text": chunk_text,
                 "start_time": float(chunk_id),
                 "end_time": float(chunk_id + 1),
             })
-            idx = end
             chunk_id += 1
 
         return chunks

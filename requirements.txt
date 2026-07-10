@@ -18,3 +18,4 @@ streamlit
 # ── Utilities ─────────────────────────────────────────────────────────────────
 python-dotenv
 pypdf
+tiktoken

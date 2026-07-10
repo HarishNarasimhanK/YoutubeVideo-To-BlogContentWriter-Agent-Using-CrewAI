@@ -17,6 +17,6 @@ class BaseTextExtractor(ABC):
     """Abstract base for all input source extractors."""
 
     @abstractmethod
-    def extract(self, source: str) -> ExtractedContent:
+    def extract(self, source: str, max_tokens_per_chunk: int = 5000) -> ExtractedContent:
         """Extract text from the given source identifier (URL, file path, raw text, etc.)."""
         ...

@@ -12,7 +12,7 @@ from langchain_core.outputs import LLMResult
 from langchain_ollama import ChatOllama
 
 from core.state import PipelineState
-from core.llm import get_llm
+from core.llm import get_llm, get_max_tokens_per_chunk
 from prompts import (
     BEGINNER_VERIFIER_SYSTEM,
     BEGINNER_WRITER_SYSTEM,
@@ -228,8 +228,11 @@ def extract_text_node(state: PipelineState) -> dict:
     source_input = state["source_input"]
     print(f"[extract_text_node] Source type: {source_type}")
 
+    max_tokens = get_max_tokens_per_chunk(state["provider"], state["model"])
+    print(f"[extract_text_node] Calculated max chunk tokens: {max_tokens}")
+
     extractor = get_extractor(source_type)
-    content = extractor.extract(source_input)
+    content = extractor.extract(source_input, max_tokens_per_chunk=max_tokens)
 
     transcript = content.text
     chunks = content.chunks

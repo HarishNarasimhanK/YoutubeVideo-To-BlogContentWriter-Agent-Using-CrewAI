@@ -12,7 +12,7 @@ class YouTubeExtractor(BaseTextExtractor):
 
     MAX_TOKENS_PER_CHUNK = 5000
 
-    def extract(self, source: str) -> ExtractedContent:
+    def extract(self, source: str, max_tokens_per_chunk: int = 5000) -> ExtractedContent:
         video_id = self._get_video_id(source)
 
         try:
@@ -25,7 +25,7 @@ class YouTubeExtractor(BaseTextExtractor):
         if not full_text.strip():
             raise ValueError("Extracted transcript is empty. The video may have no captions.")
 
-        chunks = self._chunk_by_tokens(items)
+        chunks = self._chunk_by_tokens(items, max_tokens_per_chunk)
 
         return ExtractedContent(
             text=full_text,
@@ -42,7 +42,7 @@ class YouTubeExtractor(BaseTextExtractor):
             return url.split("v=")[1].split("&")[0]
         return url
 
-    def _chunk_by_tokens(self, items: list) -> List[Dict[str, Any]]:
+    def _chunk_by_tokens(self, items: list, max_tokens: int) -> List[Dict[str, Any]]:
         chunks: List[Dict[str, Any]] = []
         current_texts: List[str] = []
         current_tokens = 0
@@ -57,7 +57,7 @@ class YouTubeExtractor(BaseTextExtractor):
             if current_start is None:
                 current_start = start
 
-            if current_tokens + item_tokens > self.MAX_TOKENS_PER_CHUNK and current_texts:
+            if current_tokens + item_tokens > max_tokens and current_texts:
                 chunks.append({
                     "text": " ".join(current_texts),
                     "start_time": current_start,

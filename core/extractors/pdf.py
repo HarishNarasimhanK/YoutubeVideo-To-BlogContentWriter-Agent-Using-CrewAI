@@ -1,17 +1,14 @@
-from __future__ import annotations
-
 import os
 from typing import Any, Dict, List
 import pypdf
+import tiktoken
 from core.extractors.base import BaseTextExtractor, ExtractedContent
 
 
 class PDFExtractor(BaseTextExtractor):
-    """Extract text from local PDF file paths."""
+    """Extract text from local PDF file paths and chunk by exact tokens."""
 
-    MAX_TOKENS_PER_CHUNK = 5000
-
-    def extract(self, source: str) -> ExtractedContent:
+    def extract(self, source: str, max_tokens_per_chunk: int = 5000) -> ExtractedContent:
         if not os.path.exists(source):
             raise FileNotFoundError(f"PDF file not found at path: {source}")
 
@@ -29,7 +26,7 @@ class PDFExtractor(BaseTextExtractor):
         if not full_text.strip():
             raise ValueError(f"No text extracted from PDF file: {source}")
 
-        chunks = self._chunk_pdf_text(pages_text)
+        chunks = self._chunk_pdf_text(full_text, max_tokens_per_chunk)
 
         return ExtractedContent(
             text=full_text,
@@ -37,34 +34,21 @@ class PDFExtractor(BaseTextExtractor):
             source_label="PDF Document",
         )
 
-    def _chunk_pdf_text(self, pages_text: List[str]) -> List[Dict[str, Any]]:
+    def _chunk_pdf_text(self, full_text: str, max_tokens: int) -> List[Dict[str, Any]]:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        token_ids = encoding.encode(full_text)
+
         chunks: List[Dict[str, Any]] = []
-        current_texts: List[str] = []
-        current_tokens = 0
         chunk_id = 0
 
-        for page_num, text in enumerate(pages_text):
-            words = text.split()
-            page_tokens = int(len(words) * 1.3) or 1
-
-            if current_tokens + page_tokens > self.MAX_TOKENS_PER_CHUNK and current_texts:
-                chunks.append({
-                    "text": "\n\n".join(current_texts),
-                    "start_time": float(chunk_id),
-                    "end_time": float(chunk_id + 1),
-                })
-                current_texts = [text]
-                current_tokens = page_tokens
-                chunk_id += 1
-            else:
-                current_texts.append(text)
-                current_tokens += page_tokens
-
-        if current_texts:
+        for i in range(0, len(token_ids), max_tokens):
+            chunk_token_ids = token_ids[i : i + max_tokens]
+            chunk_text = encoding.decode(chunk_token_ids)
             chunks.append({
-                "text": "\n\n".join(current_texts),
+                "text": chunk_text,
                 "start_time": float(chunk_id),
                 "end_time": float(chunk_id + 1),
             })
+            chunk_id += 1
 
         return chunks
